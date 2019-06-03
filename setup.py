@@ -14,7 +14,7 @@ setup(
     license='MIT',
     packages=['cl_vx_config', 'cl_vx_config.utils'],
     install_requires=[
-        'ansible==2.7'
+        'ansible==2.7',
         'napalm',
         'napalm-ansible',
         'napalm-vyos',
