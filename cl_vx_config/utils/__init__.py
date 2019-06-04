@@ -10,6 +10,7 @@ import netaddr
 from ansible.inventory.manager import InventoryManager
 from ansible.parsing.dataloader import DataLoader
 from ansible.errors import AnsibleError
+from pathlib import Path
 
 from cl_vx_config.utils.filters import Filters
 
@@ -19,9 +20,23 @@ filter = Filters()
 class File:
 
     def __init__(self, fname=None):
+
+        user = os.environ.get('USER')
+        config_dir = "/home/{}/.configvars".format(user)
+
+        try:
+            os.makedirs(config_dir)
+        except FileExistsError:
+            pass
+
         if fname is not None:
+
             self.fname = fname
-            self.path = os.getcwd() + '/files/' + fname + '.json'
+            self.path = Path('{}/{}.json'.format(config_dir, fname))
+
+            if not self.path.is_file():
+                with open(self.path, 'w') as f:
+                    json.dump({}, f)
 
             with open(self.path, 'r') as f:
                 self.data = json.load(f)

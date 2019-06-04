@@ -1,4 +1,4 @@
-# A master file that hold a configurations to deploy Cumulus VXLAN EVPN
+# A master file that hold a configurations to deploy Cumulus VXLAN EVPN require by cl_vx_config
 
 ############# VLANS #############
 # Examples:
@@ -10,7 +10,7 @@
 # - id: '501'
 #   name: 'vlan501'
 #   network_prefix: 10.0.0.0/24
-# # 
+# #
 # - id: '502'
 #   name: 'vlan502'
 vlans:
