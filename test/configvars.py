@@ -5,16 +5,19 @@ from cl_vx_config.configvars import ConfigVars
 cl = ConfigVars()
 
 parser = argparse.ArgumentParser(
-    prog='configvars', usage='%(prog)s --config [config_var]'
+    prog='configvars',
+    usage='%(prog)s --config [config_var]'
 )
 
 parser.add_argument(
-    '--config', dest='config_var',
+    '--config',
+    dest='config_var',
     help='name configuration variable',
 )
 
 parser.add_argument(
-    '--config_list', action='store_true',
+    '--config_list',
+    action='store_true',
     help='list of configuration variables',
 )
 
@@ -33,7 +36,7 @@ if config.config_list:
     ]
     print(x)
 
-if config.config_var:
+elif config.config_var:
     try:
         method = getattr(cl, config.config_var)
         try:
