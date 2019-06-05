@@ -208,7 +208,7 @@ class Host:
         if self.host not in Inventory().hosts():
             raise AnsibleError('Host not found: ' + self.host)
 
-        self.id = int(re.split('(\\d+)', self.host)[1])
+        self.id = int(re.split('(\\d+)', self.host)[-2])
 
         if self.id % 2 == 0:
             rack_id = int(self.id - (self.id / 2))
