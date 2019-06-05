@@ -210,8 +210,8 @@ class CheckVars:
                     _net = Network(net)
                     if (vnp.overlaps(_net)
                             or _net.overlaps(vnp)):
-                        msg = ("Networks conflict:\nRefer to the errors "
-                               "below and check the 'master.yml' file.\n{}\n{}")
+                        msg = ("Networks conflict:\nRefer to the errors below "
+                               "and check the 'master.yml' file.\n{}\n{}")
                         raise AnsibleError(msg.format(
                             self._yaml_f({'vlans': {tenant: [vlan]}}),
                             self._yaml_f({

@@ -170,10 +170,6 @@ class Network(netaddr.IPNetwork):
         if err:
             raise AnsibleError('Run out of IP addresses')
 
-    # def __next__(self):
-    #     ''' A Generator that return an IP address without an index '''
-    #     yield self.__iter__()
-
     def overlaps(self, other):
         ''' Return True if one IP network overlaps with other IP network '''
         return self.__contains__(other)
@@ -245,20 +241,6 @@ class Inventory:
         self.inventory = InventoryManager(
             loader=self.loader, sources=[self.inventory_source]
         )
-
-        # rack = collections.defaultdict(list)
-        # for rack, host in rack.items():
-        #     self.inventory.add_group(rack)
-        #     self.inventory.add_host(host, group=rack)
-        # self.variable_manager = VariableManager(
-        #     loader=self.loader, inventory=self.inventory
-        #     )
-        #
-        # self.hostvars = HostVars(
-        #     loader=self.loader,
-        #     inventory=self.inventory,
-        #     variable_manager=self.variable_manager
-        #     )
 
     def __iter__(self):
         return iter([h for h in self.hosts() if h != 'localhost'])

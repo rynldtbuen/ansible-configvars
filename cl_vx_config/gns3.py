@@ -1,7 +1,10 @@
 import requests
 import json
 
-
+'''
+Future project to use GNS3 API to provision a GNS3 project base on the
+variable define in 'master.yml'
+'''
 base_url = "http://10.0.0.254:3080/v2"
 
 
