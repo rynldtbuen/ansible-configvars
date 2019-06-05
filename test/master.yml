@@ -1,4 +1,4 @@
-# A master file that hold a configurations to deploy Cumulus VXLAN EVPN require by cl_vx_config
+# A master file that hold a configurations to deploy Cumulus VXLAN EVPN
 
 ############# VLANS #############
 # Examples:
@@ -47,18 +47,7 @@ mlag_bonds:
 
 ############# TOPOLOGY LINKS #############
 # Define a point-to-point links between switches
-# network_links attributes:
-# ===========================================
-# Attributes      Required  DataType  Description
-# name            yes       str       Name of VLAN
-# links           yes       list      String format:
-#                                     'inventory_groups/inventory_hostname:starting_interface -- inventory_groups/inventory_hostname:starting_interface'
-# interface_type  yes       str       Valid choices [unnumbered, sub_interface, ip]
-#                                     'sub_interface' and 'ip' 'interface_type' will automatically generate a network with /30
-#                                     base on the CIDR defined with a 'name' attribute in 'base_networks' variable
-# vrf             no        str       Name of the vrf which the interface belong to. Default value is 'default' vrf
-# vifs            no        dict      Only usable if interface_type is equal to 'sub_interface'. Default value is the tenant l3vni
-#############################################
+
 network_links:
   - name: fabric
     links:
@@ -69,8 +58,6 @@ network_links:
     links:
       - 'edge:eth0 -- border:swp1'
     interface_type: sub_interface
-
-
 
 ############# BASE NETWORKS ###############
 # Change according to your topology
@@ -107,3 +94,10 @@ ip_interfaces:
       eth2: # Management interface
           address: '172.24.0.254/24'
           desc: INSIDE
+
+############# OUT-OF-BAND MANAGEMENT #############
+domain: 'cumulusvxgns3.lab'
+dhcp_range: 172.24.0.50,172.24.0.200
+gateway_address: '172.24.0.254'
+dns_server: '172.24.0.10'
+dns_forwarder: '8.8.8.8'
