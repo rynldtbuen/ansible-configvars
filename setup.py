@@ -11,7 +11,10 @@ setup(
         to use in Cumulus EVPN VXLAN Deployment
         '''
     ),
-    url='https://github.com/rynldtbuen/ansible-configvars',
+    url='https://github.com/rynldtbuen/cl_vx_config',
+    download_url=(
+        'https://github.com/rynldtbuen/cl_vx_config/archive/v0.1.tar.gz'
+    ),
     license='MIT',
     packages=find_packages(),
     install_requires=[
