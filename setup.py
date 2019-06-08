@@ -7,13 +7,15 @@ setup(
     author_email='rynldtbuen@gmail.com',
     description=(
         '''
-        Simplify configurations variable defined in master.yml
-        to use in Cumulus EVPN VXLAN Deployment
+        A python script that is use as a Ansible custom filter in
+        https://github.com/rynldtbuen/cumulus-vxlan-evpn-ansible.git
+        to simplify the configuration variables
+        defined in 'master.yml' in the playbook.
         '''
     ),
     url='https://github.com/rynldtbuen/cl_vx_config',
     download_url=(
-        'https://github.com/rynldtbuen/cl_vx_config/archive/v0.1.tar.gz'
+        'https://github.com/rynldtbuen/cl_vx_config/archive/v0.1-beta.zip'
     ),
     license='MIT',
     packages=find_packages(),
