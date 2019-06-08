@@ -1,23 +1,29 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='cl_vx_config',
     version='0.1',
+    author='Reynold Tabuena',
+    author_email='rynldtbuen@gmail.com',
     description=(
         '''
         Simplify configurations variable defined in master.yml
         to use in Cumulus EVPN VXLAN Deployment
         '''
     ),
-    author='Reynold Tabuena',
-    author_email='rynldtbuen@gmail.com',
+    url='https://github.com/rynldtbuen/ansible-configvars',
     license='MIT',
-    packages=['cl_vx_config', 'cl_vx_config.utils'],
+    packages=find_packages(),
     install_requires=[
         'ansible==2.7.8',
         'napalm',
         'napalm-ansible',
         'napalm-vyos',
         'ruamel.yaml'
-        ],
-    zip_safe=False)
+    ],
+    classifiers=[
+        'Programming Language :: Python :: 3.5',
+        'License :: OSI Approved :: MIT License',
+        'Development Status :: 4 - Beta'
+    ],
+)

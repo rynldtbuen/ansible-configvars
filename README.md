@@ -2,13 +2,16 @@ A python script that is use as a Ansible custom filter in [cumulus-vxlan-evpn-an
 - **Install pip3 and git package**
 ```
 $ sudo apt-get install python3-pip git
+```
+- **Install virtualenv**
+```
 $ pip3 install virtualenv
 ```
-- **Create a python virtual environment**
+- **Create and activate the virtual environment**
 ```
-$ mkdir venv # Create a directory for the virtual environment
-$ virtualenv --python=python3.5 venv # Make sure python3 is use in creating the virtualenv
-$ source venv/bin/activate # Active the virtual environment
+$ mkdir <DIR>
+$ virtualenv -p python3 <DIR>  
+$ source <DIR>/bin/activate
 ```
 - **Clone and install the script**
 ```
