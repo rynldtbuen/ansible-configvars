@@ -32,9 +32,9 @@ class File:
         if fname is not None:
 
             self.fname = fname
-            self.path = Path('{}/{}.json'.format(config_dir, fname))
+            self.path = '{}/{}.json'.format(config_dir, fname)
 
-            if not self.path.is_file():
+            if not os.path.isfile(self.path):
                 with open(self.path, 'w') as f:
                     json.dump({}, f)
 
