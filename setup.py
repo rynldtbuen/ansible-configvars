@@ -14,10 +14,7 @@ setup(
         Cumulus EVPN VXLAN in Symmetric Routing
         '''
     ),
-    url='https://github.com/rynldtbuen/cl_vx_config',
-    download_url=(
-        'https://github.com/rynldtbuen/cl_vx_config/archive/v1.0.zip'
-    ),
+    url='https://github.com/rynldtbuen/cl-vx-config',
     license='MIT',
     packages=find_packages(),
     install_requires=[
