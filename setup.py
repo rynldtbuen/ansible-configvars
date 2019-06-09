@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='cl-vx-config',
+    name='cl_vx_config',
     version='v1.0',
     author='Reynold Tabuena',
     author_email='rynldtbuen@gmail.com',
