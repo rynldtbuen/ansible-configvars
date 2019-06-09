@@ -1,4 +1,4 @@
-A python script that simplify the configuration variables defined in `master.yml` and use it as a custom filter in [cumulus-vxlan-evpn-ansible](https://github.com/rynldtbuen/cumulus-vxlan-evpn-ansible.git) to load the simplified configuration variables to deploy Cumulus VXLAN EVPN
+A python script that is use as a Ansible custom filter to simplify the configuration variables defined in  [`cumulus-vxlan-evpn-ansible/master.yml`](https://github.com/rynldtbuen/cumulus-vxlan-evpn-ansible/blob/v2.0/master.yml) to deploy Cumulus VXLAN EVPN
 - **Install pip3, virtualenv and git**
 ```
 $ sudo apt-get install python3-pip git
