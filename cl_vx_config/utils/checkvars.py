@@ -13,7 +13,9 @@ inventory = Inventory()
 
 
 class CheckVars:
-
+    '''
+    Pre-Check of variables defined in master.yml
+    '''
     def _yaml_f(self, data, style="", flow=None, start=True):
         return yaml.dump(
             data, default_style=style,

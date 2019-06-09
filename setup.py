@@ -11,7 +11,7 @@ setup(
         master.yml and use it as a custom filter in
         https://github.com/rynldtbuen/cumulus-vxlan-evpn-ansible.git
         to load the simplified configuration variables to deploy
-        Cumulus VXLAN EVPN
+        Cumulus EVPN VXLAN in Symmetric Routing
         '''
     ),
     url='https://github.com/rynldtbuen/cl_vx_config',
