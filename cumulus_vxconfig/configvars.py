@@ -868,10 +868,10 @@ class ConfigVars:
                 }
 
         master_ip_interfaces = mf['ip_interfaces']
-        for host in master_ip_interfaces:
-            for interface, v in master_ip_interfaces[host].items():
-                ip_interfaces[host][interface] = {
-                    'ip': v['address'], 'alias': v['desc'],
+        for host, interfaces in master_ip_interfaces.items():
+            for item in interfaces:
+                ip_interfaces[host][item['name']] = {
+                    'ip': item['ip_address'], 'alias': item['alias'],
                     'vrf': 'default', 'neighbor': None
                 }
 
@@ -1168,15 +1168,15 @@ class ConfigVars:
             ]
         }
         '''
-        ip_interfaces = File().master()['ip_interfaces']
+        master_ip_interfaces = mf['ip_interfaces']
         nat_rules = self._nat_rules
 
         nat_host = collections.defaultdict(list)
-        for host, interfaces in ip_interfaces.items():
+        for host, interfaces in master_ip_interfaces.items():
             nat_ifaces = []
-            for iface, v in interfaces.items():
-                if 'ip_nat' in v and v['ip_nat'] == 'outside':
-                    nat_ifaces.append(iface)
+            for item in interfaces:
+                if 'ip_nat' in item and item['ip_nat'] == 'outside':
+                    nat_ifaces.append(item['name'])
             for index, nat_iface in enumerate(nat_ifaces):
                 for k, v in nat_rules.items():
                     rule = int(k) + index

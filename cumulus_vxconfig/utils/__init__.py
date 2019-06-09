@@ -21,7 +21,7 @@ class File:
     def __init__(self, fname=None):
 
         user = os.environ.get('USER')
-        config_dir = "/home/{}/.configvars".format(user)
+        config_dir = "/home/{}/.cumulus_vxconfig".format(user)
 
         try:
             os.makedirs(config_dir)
