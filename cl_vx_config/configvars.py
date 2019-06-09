@@ -15,8 +15,9 @@ mf = File().master()
 
 class ConfigVars:
     '''
-    Simplify configurations variable defined in master.yml
-    to use in Cumulus EVPN VXLAN Deployment
+    Simplify the configuration variables defined in master.yml and use as a
+    custom filter in Ansible to load the simplified configuration variables
+    to deploy Cumulus VXLAN EVPN
     '''
 
     def __init__(self):
@@ -165,9 +166,11 @@ class ConfigVars:
         if key is not None:
             x = collections.defaultdict(list)
             for tenant, vlans in copy.deepcopy(master_vlans).items():
-                for vlan in vlans:
-                    vlan.update({'tenant': tenant, 'type': 'l2',
-                                 'vlan': 'vlan' + vlan['id']})
+                for index, vlan in enumerate(vlans):
+                    vlan.update({
+                        'tenant': tenant, 'type': 'l2',
+                        'vlan': 'vlan' + vlan['id'], 'index': index
+                    })
                 vlans.append(_l3vni()[tenant])
                 for k, v in itertools.groupby(vlans, lambda x: x[key]):
                     x[k].extend(list(v))
@@ -501,13 +504,13 @@ class ConfigVars:
             }
         }
         '''
-        master_vlans = self._vlans()
+        mv = self._vlans()
         vlans_network = File('vlans_network')
-        _vlans = self._vlans(key='id')
+        vlans = self._vlans(key='vlan')
 
-        # Delete VLANs IP network not in master file
         for vlan, v in vlans_network.data.copy().items():
-            if v['id'] not in _vlans.keys():
+            # Delete VLANs IP network not in master file
+            if vlan not in vlans:
                 vlans_network.data.pop(vlan)
 
         existing_net_prefix = list(
@@ -516,63 +519,65 @@ class ConfigVars:
 
         checkvars = CheckVars()
         base_vlans_network = Network(checkvars.base_networks['vlans'])
-        for tenant, vlans in master_vlans.items():
-            for vlan in vlans:
-                _vlan = _vlans[vlan['id']]
-                key = _vlan['vlan']
-                if 'network_prefix' in vlan:
-                    _vlan['allocation'] = 'manual'
-                    if key not in vlans_network.data.keys():
+        for vlan, v in vlans.items():
+            if v['type'] == 'l2':
+                if 'network_prefix' in v:
+                    t = v['tenant']
+                    allocation = 'manual'
+                    if vlan not in vlans_network.data:
                         checkvars.vlans_network(
-                            tenant, vlan, vlans_network.data
+                            t, mv[t][v['index']], vlans_network.data
                         )
-                        vlans_network.data[key] = _vlan
                     else:
-                        if (vlans_network.data[key]['network_prefix']
-                                != vlan['network_prefix']):
+                        if (vlans_network.data[vlan]['network_prefix']
+                                != v['network_prefix']):
                             checkvars.vlans_network(
-                                tenant, vlan, vlans_network.data
+                                t, mv[t][v['index']], vlans_network.data
                             )
-                            vlans_network.data[key].update({
-                                'network_prefix': vlan['network_prefix'],
+                            vlans_network.data[vlan].update({
+                                'network_prefix': v['network_prefix'],
                                 'allocation': 'manual'
                             })
 
-                elif 'prefixlen' in vlan:
-                    _vlan['allocation'] = 'auto_prefixlen'
-                    if key not in vlans_network.data.keys():
+                elif 'prefixlen' in v:
+                    allocation = 'auto_prefixlen'
+                    if vlan not in vlans_network.data:
                         subnet = base_vlans_network.get_subnet(
-                            existing_net_prefix, prefixlen=vlan['prefixlen']
+                            existing_net_prefix, prefixlen=v['prefixlen']
                         )
-                        _vlan['network_prefix'] = subnet
-                        vlans_network.data[key] = _vlan
+                        vlans_network.data[vlan] = {
+                            'allocation': allocation,
+                            'network_prefix': subnet
+                            }
 
                     else:
-                        if (vlans_network.data[key]['allocation']
+                        if (vlans_network.data[vlan]['allocation']
                                 != 'auto_prefixlen'):
                             subnet = base_vlans_network.get_subnet(
                                 existing_net_prefix,
-                                prefixlen=vlan['prefixlen']
+                                prefixlen=v['prefixlen']
                             )
-                            vlans_network.data[key].update({
+                            vlans_network.data[vlan].update({
                                 'network_prefix': subnet,
                                 'allocation': 'auto_prefixlen'
                             })
                 else:
-                    _vlan['allocation'] = 'auto_network_prefix'
-                    if key not in vlans_network.data.keys():
+                    allocation = 'auto_network_prefix'
+                    if vlan not in vlans_network.data:
                         subnet = base_vlans_network.get_subnet(
                             existing_net_prefix
                         )
-                        _vlan['network_prefix'] = subnet
-                        vlans_network.data[key] = _vlan
+                        vlans_network.data[vlan] = {
+                            'allocation': allocation,
+                            'network_prefix': subnet
+                            }
                     else:
-                        if (vlans_network.data[key]['allocation']
+                        if (vlans_network.data[vlan]['allocation']
                                 != 'auto_network_prefix'):
                             subnet = base_vlans_network.get_subnet(
                                 existing_net_prefix
                             )
-                            vlans_network.data[key].update({
+                            vlans_network.data[vlan].update({
                                 'network_prefix': subnet,
                                 'allocation': 'auto_network_prefix'
                             })
@@ -616,46 +621,47 @@ class ConfigVars:
         }
         '''
         vlans_network = self._vlans_network
-        vni = self.vxlans()
+        host_vlans = self._host_vlans
 
         vlans_interface = {}
-        for host, vxlans in vni.items():
+
+        for host, vlans in host_vlans.items():
             svi = {'l2svi': [], 'l3svi': [], 'vids': []}
             _host = Host(host)
 
-            for vxlan in vxlans['vxlan_interfaces']:
-                if vxlan['type'] == 'l2':
+            for vlan in vlans:
+                if vlan['type'] == 'l2':
                     network = Network(
-                        vlans_network[vxlan['vlan']]['network_prefix']
+                        vlans_network[vlan['vlan']]['network_prefix']
                         )
                     vhwaddr = (
-                        MACAddr('44:38:39:FF:01:00') + int(vxlan['vid'])
+                        MACAddr('44:38:39:FF:01:00') + int(vlan['id'])
                     )
                     vip = network.get_ip(0)
                     ip = network.get_ip(-_host.id)
                     svi['l2svi'].append({
-                        'name': vxlan['name'], 'ip': ip, 'vip': vip,
-                        'vhwaddr': vhwaddr, 'vrf': vxlan['tenant'],
-                        'vlan': vxlan['vlan'], 'vid': vxlan['vid']
+                        'name': vlan['name'], 'ip': ip, 'vip': vip,
+                        'vhwaddr': vhwaddr, 'vrf': vlan['tenant'],
+                        'vlan': vlan['vlan'], 'vid': vlan['id']
                         })
-                    svi['vids'].append(vxlan['vid'])
+                    svi['vids'].append(vlan['id'])
                 else:
                     if host in inventory.hosts('leaf'):
                         router_mac = (
                             MACAddr('44:39:39:FF:FF:FF') - _host.rack_id
                         )
                         svi['l3svi'].append({
-                            'router_mac': router_mac, 'vrf': vxlan['tenant'],
-                            'vlan': vxlan['vlan'], 'vid': vxlan['vid'],
-                            'vni': vxlan['id']
+                            'router_mac': router_mac, 'vrf': vlan['tenant'],
+                            'vlan': vlan['vlan'], 'vid': vlan['id'],
+                            'vni': vlan['id']
                             })
-                        svi['vids'].append(vxlan['vid'])
+                        svi['vids'].append(vlan['id'])
                     else:
                         svi['l3svi'].append({
-                            'vrf': vxlan['tenant'], 'vlan': vxlan['vlan'],
-                            'vid': vxlan['id'], 'vni': vxlan['vid']
+                            'vrf': vlan['tenant'], 'vlan': vlan['vlan'],
+                            'vid': vlan['id'], 'vni': vlan['id']
                             })
-                        svi['vids'].append(vxlan['vid'])
+                        svi['vids'].append(vlan['id'])
 
             vlans_interface[host] = svi
 
@@ -1047,3 +1053,136 @@ class ConfigVars:
             bgp_neighbors[host] = vrf
 
         return dict(bgp_neighbors)
+
+    @property
+    def _nat_rules(self):
+        '''
+        Generate a NAT rules and save it on nat_rules.json file.
+
+        Required variables in master.yml
+        --------------------------------
+        vlans:
+            tenant01:
+              - id: '500'
+                name: 'vlan500'
+                prefixlen: 20
+                allow_nat: true
+
+        base_networks:
+          oob_management: '172.24.0.0/24'
+
+        Returns
+        -------
+        {
+            "1": {
+                "name": "oob_management",
+                "tenant": "default",
+                "source_address": "172.24.0.0/24"
+            },
+            "5000": {
+                "name": "vlan500",
+                "tenant": "tenant01",
+                "source_address": "172.16.0.0/24"
+            }
+        }
+        '''
+        nat_rules = File('nat_rules')
+        available_rules = iter([
+            r for r in range(500, 600, 10) if str(r) not in nat_rules.data
+        ])
+        vlans = self._vlans(key='vlan')
+        vlans_network = self._vlans_network
+        nat_networks = {k: v for k, v in vlans.items() if 'allow_nat' in v}
+        network_prefixes = [
+            vlans_network[k]['network_prefix']
+            for k, _ in nat_networks.items()
+            ]
+        source_addresses = [
+            v['source_address'] for k, v in nat_rules.data.items()
+            ]
+
+        # Add nat rule for oob-management network
+        oob_mgmt_network = CheckVars().base_networks['oob_management']
+        nat_rules.data['1'] = {
+            'name': 'oob_management',
+            'tenant': 'default', 'source_address': oob_mgmt_network
+            }
+
+        for k, v in nat_rules.data.copy().items():
+            if v['source_address'] not in network_prefixes and k != '1':
+                del nat_rules.data[k]
+
+        for k, v in nat_networks.items():
+            source_address = vlans_network[k]['network_prefix']
+            if source_address not in source_addresses:
+                rule = next(available_rules)
+                nat_rules.data[rule] = {
+                    'name': vlans[k]['name'],
+                    'tenant': vlans[k]['tenant'],
+                    'source_address': source_address
+                }
+
+        for k, v in nat_rules.data.items():
+            for k1, v1 in vlans_network.items():
+                if v1['network_prefix'] == v['source_address']:
+                    nat_rules.data[k].update({
+                        'name': vlans[k1]['name'],
+                        'tenant': vlans[k1]['tenant']
+                    })
+
+        return nat_rules.dump()
+
+    def nat(self):
+        '''
+        Build a host NAT variable.
+
+        Required variables in master.yml
+        --------------------------------
+        ip_interfaces:
+            edge01:
+                eth3:
+                    address: dhcp
+                    ip_nat: outside
+                eth2: # Management interface
+                    address: '172.24.0.254/24'
+
+        Returns
+        -------
+        {
+            "edge01": [
+                {
+                    "interface": "eth3",
+                    "name": "oob_management",
+                    "rule": 1,
+                    "tenant": "default",
+                    "source_address": "172.24.0.0/24"
+                },
+                {
+                    "interface": "eth3",
+                    "name": "vlan500",
+                    "rule": 5000,
+                    "tenant": "tenant01",
+                    "source_address": "172.16.0.0/24"
+                }
+            ]
+        }
+        '''
+        ip_interfaces = File().master()['ip_interfaces']
+        nat_rules = self._nat_rules
+
+        nat_host = collections.defaultdict(list)
+        for host, interfaces in ip_interfaces.items():
+            nat_ifaces = []
+            for iface, v in interfaces.items():
+                if 'ip_nat' in v and v['ip_nat'] == 'outside':
+                    nat_ifaces.append(iface)
+            for index, nat_iface in enumerate(nat_ifaces):
+                for k, v in nat_rules.items():
+                    rule = int(k) + index
+                    nat_host[host].append({
+                        'interface': nat_iface, 'name': v['name'],
+                        'rule': rule, 'tenant': v['tenant'],
+                        'src_addr': v['source_address']
+                        })
+
+        return dict(nat_host)

@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='cl_vx_config',
-    version='v0.1-beta',
+    version='v0.2',
     author='Reynold Tabuena',
     author_email='rynldtbuen@gmail.com',
     description=(

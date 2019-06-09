@@ -201,10 +201,12 @@ class CheckVars:
                                    "below and check the 'master.yml' file."
                                    "\n{}\n{}")
                             raise AnsibleError(msg.format(
-                                self._yaml_f({'vlans': {tenant: [vlan]}}),
-                                self._yaml_f({
-                                    'base_networks': {var: {group: network}}},
-                                    flow=False, start=False)
+                                filter.yaml_format({
+                                    'vlans': {tenant: [vlan]}
+                                }),
+                                filter.yaml_format({
+                                    'base_networks': {var: {group: network}}
+                                }, start=False)
                             ))
                 else:
                     _net = Network(net)
@@ -213,10 +215,9 @@ class CheckVars:
                         msg = ("Networks conflict:\nRefer to the errors below "
                                "and check the 'master.yml' file.\n{}\n{}")
                         raise AnsibleError(msg.format(
-                            self._yaml_f({'vlans': {tenant: [vlan]}}),
-                            self._yaml_f({
-                                'base_networks': {var: net}},
-                                flow=False, start=False)
+                            filter.yaml_format({'vlans': {tenant: [vlan]}}),
+                            filter.yaml_format({
+                                'base_networks': {var: net}}, start=False)
                         ))
 
         for k, v in vlans_network.items():
@@ -228,7 +229,7 @@ class CheckVars:
                        "'master.yml' file.\n{}")
                 raise AnsibleError(msg.format(
                     str(vnp), str(_vnp), v['id'],
-                    self._yaml_f({'vlans': {tenant: [vlan]}})
+                    filter.yaml_format({'vlans': {tenant: [vlan]}})
                 ))
 
     def link_base_network(self, name):
