@@ -15,9 +15,10 @@ mf = File().master()
 
 class ConfigVars:
     '''
-    Simplify the configuration variables defined in master.yml and use as a
-    custom filter in Ansible to load the simplified configuration variables
-    to deploy Cumulus VXLAN EVPN
+    Simplify the configuration variables defined in master.yml and use it as a
+    custom filter in
+    https://github.com/rynldtbuen/cumulus-vxlan-evpn-ansible.git
+    to load the simplified configuration variables to deploy Cumulus VXLAN EVPN
     '''
 
     def __init__(self):

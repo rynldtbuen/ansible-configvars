@@ -2,15 +2,16 @@ from setuptools import setup, find_packages
 
 setup(
     name='cl_vx_config',
-    version='v0.2',
+    version='v1.0',
     author='Reynold Tabuena',
     author_email='rynldtbuen@gmail.com',
     description=(
         '''
-        A python script that is use as a Ansible custom filter in
+        A python script that simplify the configuration variables defined in
+        master.yml and use it as a custom filter in
         https://github.com/rynldtbuen/cumulus-vxlan-evpn-ansible.git
-        to simplify the configuration variables
-        defined in 'master.yml' in the playbook.
+        to load the simplified configuration variables to deploy
+        Cumulus VXLAN EVPN
         '''
     ),
     url='https://github.com/rynldtbuen/cl_vx_config',
