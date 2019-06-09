@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='cl_vx_config',
+    name='cumulus_vxconfig',
     version='v1.0',
     author='Reynold Tabuena',
     author_email='rynldtbuen@gmail.com',
@@ -14,7 +14,7 @@ setup(
         Cumulus EVPN VXLAN in Symmetric Routing
         '''
     ),
-    url='https://github.com/rynldtbuen/cl-vx-config',
+    url='https://github.com/rynldtbuen/cumulus-vxconfig',
     license='MIT',
     packages=find_packages(),
     install_requires=[

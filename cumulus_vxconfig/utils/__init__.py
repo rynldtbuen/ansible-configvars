@@ -11,7 +11,7 @@ from ansible.inventory.manager import InventoryManager
 from ansible.parsing.dataloader import DataLoader
 from ansible.errors import AnsibleError
 
-from cl_vx_config.utils.filters import Filters
+from cumulus_vxconfig.utils.filters import Filters
 
 filter = Filters()
 

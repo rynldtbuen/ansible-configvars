@@ -2,9 +2,9 @@ import collections
 import copy
 import itertools
 
-from cl_vx_config.utils.checkvars import CheckVars
-from cl_vx_config.utils.filters import Filters
-from cl_vx_config.utils import (
+from cumulus_vxconfig.utils.checkvars import CheckVars
+from cumulus_vxconfig.utils.filters import Filters
+from cumulus_vxconfig.utils import (
     File, Inventory, Host, MACAddr, Network, Link
 )
 

@@ -4,8 +4,8 @@ import itertools
 import yaml
 
 from ansible.errors import AnsibleError
-from cl_vx_config.utils.filters import Filters
-from cl_vx_config.utils import File, Network, Link, Inventory, Host
+from cumulus_vxconfig.utils.filters import Filters
+from cumulus_vxconfig.utils import File, Network, Link, Inventory, Host
 
 filter = Filters()
 mf = File().master()
