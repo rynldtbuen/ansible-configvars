@@ -27,7 +27,6 @@ setup(
     classifiers=[
         'Programming Language :: Python :: 3.5',
         'License :: OSI Approved :: MIT License',
-        'Development Status :: 4 - Beta'
     ],
     entry_points={
         "console_scripts": [
