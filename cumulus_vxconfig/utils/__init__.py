@@ -46,7 +46,10 @@ class File:
         return self.data
 
     def master(self):
-        path = os.getcwd() + '/master.yml'
+        try:
+            path = os.getcwd() + '/master.yml'
+        except FileNotFoundError as err:
+            print(err)
 
         with open(path, 'r') as f:
             return yaml.safe_load(f)

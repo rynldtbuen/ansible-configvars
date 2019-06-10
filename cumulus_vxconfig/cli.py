@@ -34,11 +34,9 @@ def main():
     config = parser.parse_args()
 
     if config.config_list:
-        print('''
-Configuration variables
-=======================
-{}
-            '''.format("\n".join(methods)))
+        print('\nConfiguration variables')
+        print('=======================')
+        print('{}\n'.format('\n'.join(methods)))
     elif config.configvar:
         method = getattr(configvars, config.configvar)
         try:
