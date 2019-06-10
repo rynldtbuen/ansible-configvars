@@ -29,4 +29,9 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Development Status :: 4 - Beta'
     ],
+    entry_points={
+        "console_scripts": [
+            "cumulus_getconfig=cumulus_vxconfig.cli:main"
+        ]
+    }
 )

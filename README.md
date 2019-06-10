@@ -14,3 +14,7 @@ $ source <DIR>/bin/activate
 ```
 $ pip install cl_vx_config
 ```
+- **Clone the playbook**
+```
+$ 
+```
