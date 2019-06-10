@@ -35,9 +35,9 @@ def main():
 
     if config.config_list:
         print('''
-    Configuration variables
-    =======================
-    {}
+Configuration variables
+=======================
+{}
             '''.format("\n".join(methods)))
     elif config.configvar:
         method = getattr(configvars, config.configvar)
