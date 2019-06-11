@@ -1018,7 +1018,7 @@ class ConfigVars:
         for host, ifaces in _ifaces.items():
             neighbors, vrf, peer_groups = (
                 collections.defaultdict(list), {}, set([])
-                )
+            )
             for iface, v in ifaces.items():
                 if v['neighbor'] is not None:
                     n = v['neighbor']
@@ -1043,9 +1043,10 @@ class ConfigVars:
                     })
 
             for _vrf, v in neighbors.items():
-                peer_groups = [k for k, v in itertools.groupby(
-                    v, lambda x: x['peer_group']
-                    )]
+                peer_groups = [
+                    k for k, v in itertools.groupby(
+                        v, lambda x: x['peer_group'])
+                ]
                 vrf[_vrf].update({
                     'neighbors': neighbors[_vrf],
                     'peer_groups': peer_groups
@@ -1097,17 +1098,17 @@ class ConfigVars:
         network_prefixes = [
             vlans_network[k]['network_prefix']
             for k, _ in nat_networks.items()
-            ]
+        ]
         source_addresses = [
             v['source_address'] for k, v in nat_rules.data.items()
-            ]
+        ]
 
         # Add nat rule for oob-management network
         oob_mgmt_network = CheckVars().base_networks['oob_management']
         nat_rules.data['1'] = {
             'name': 'oob_management',
             'tenant': 'default', 'source_address': oob_mgmt_network
-            }
+        }
 
         for k, v in nat_rules.data.copy().items():
             if v['source_address'] not in network_prefixes and k != '1':
@@ -1184,6 +1185,6 @@ class ConfigVars:
                         'interface': nat_iface, 'name': v['name'],
                         'rule': rule, 'tenant': v['tenant'],
                         'src_addr': v['source_address']
-                        })
+                    })
 
         return dict(nat_host)
