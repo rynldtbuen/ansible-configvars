@@ -12,13 +12,13 @@ $ source <DIR>/bin/activate
 ```
 - **Install the script**
 ```
-$ pip install cl_vx_config
+$ pip install cumulus_vxconfig
 ```
 - **Clone the playbook and run a test**
 ```
 $ git clone https://github.com/rynldtbuen/cumulus-evpn-vxlan-ansible.git
 $ cd cumulus-evpn-vxlan-ansible
-$ cumulus_getconfig -c loopback_ips
+$ cumulus_getconfig -c mlag_bonds
 {
     "leaf01": {
         "bonds": [
