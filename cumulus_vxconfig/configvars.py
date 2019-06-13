@@ -15,10 +15,8 @@ mf = File().master()
 
 class ConfigVars:
     '''
-    Simplify the configuration variables defined in master.yml and use it as a
-    custom filter in https://github.com/rynldtbuen/cumulus-evpn-vxlan-ansible
-    to load the simplified configuration variables to deploy
-    Cumulus EVPN VXLAN in Symmetric Routing
+    Class that transform and simplify the configuration variables
+    define in https://github.com/rynldtbuen/cumulus-evpn-vxlan-ansible
     '''
 
     def __init__(self):
@@ -734,10 +732,11 @@ class ConfigVars:
 
         '''
         ip_network_type = ['ip', 'sub_interface']
-        l3vni = {v['tenant']: v['id']
-                 for k, v in self._vlans(key='vlan').items()
-                 if v['type'] == 'l3'
-                 }
+        l3vni = {
+            v['tenant']: v['id']
+            for k, v in self._vlans(key='vlan').items()
+            if v['type'] == 'l3'
+        }
 
         _ip_network_links = {}
         for nl in mf['network_links']:

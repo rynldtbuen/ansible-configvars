@@ -275,11 +275,8 @@ class Inventory:
 
 class Link:
     '''
-    A Class take a dict with key as a variable name
-    and values of list of link:
-    fabric:
-      - 'spine:swp1 -- leaf:swp21'
-      - 'spine:swp23 -- border:swp23'
+    Class that trasform a link string format into a stuctured data
+    Example of link string format: 'spine:swp1 -- leaf:swp21'
     '''
     def __init__(self, variable, _links):
         self.links = _links
@@ -400,13 +397,11 @@ class Link:
             "spine": [
                 [
                     "swp1",
-                    "spine:swp1 -- leaf:swp21 --> spine:['swp1', 'swp2',
-                    'swp3', 'swp4'] -- leaf:['swp21', 'swp22']"
+                    "spine:swp1 -- leaf:swp21 --> spine:['swp1', 'swp2','swp3', 'swp4'] -- leaf:['swp21', 'swp22']"
                 ],
                 [
                     "swp2",
-                    "spine:swp1 -- leaf:swp21 --> spine:['swp1', 'swp2',
-                    'swp3', 'swp4'] -- leaf:['swp21', 'swp22']"
+                    "spine:swp1 -- leaf:swp21 --> spine:['swp1', 'swp2','swp3', 'swp4'] -- leaf:['swp21', 'swp22']"
                 ]
             ]
         }
