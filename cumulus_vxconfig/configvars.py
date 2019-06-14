@@ -18,7 +18,6 @@ class ConfigVars:
     Class that transform and simplify the configuration variables
     define in https://github.com/rynldtbuen/cumulus-evpn-vxlan-ansible
     '''
-
     def __init__(self):
         # Check for overlapping interfaces
         CheckVars().interfaces
@@ -739,29 +738,28 @@ class ConfigVars:
         }
 
         _ip_network_links = {}
-        for nl in mf['network_links']:
-            if nl['interface_type'] in ip_network_type:
-                links = Link(nl['name'], nl['links'])
-                base_network = CheckVars().link_base_network(nl['name'])
+        for k, v in mf['network_links'].items():
+            if v['interface_type'] in ip_network_type:
+                links = Link(k, v['links'])
+                base_network = CheckVars().link_base_network(k)
                 link_nodes = links.link_nodes()
 
                 _links = {}
                 for link in links:
                     nodes = [node for node in link_nodes[link]]
-                    if nl['interface_type'] == 'sub_interface':
+                    if v['interface_type'] == 'sub_interface':
                         try:
-                            for item in nl['vifs']:
+                            for item in v['vifs']:
                                 vrf = item['vrf'] if 'vrf' in item else None
                                 _link = '{}_{}'.format(link, item['vid'])
                                 _links[_link] = {'vrf': vrf, 'nodes': nodes}
-
                         except KeyError:
                             for vrf, vid in l3vni.items():
                                 _link = '{}_{}'.format(link, vid)
                                 _links[_link] = {'vrf': vrf, 'nodes': nodes}
 
-                    elif nl['interface_type'] == 'ip':
-                        vrf = nl['vrf'] if 'vrf' in nl else None
+                    elif v['interface_type'] == 'ip':
+                        vrf = v['vrf'] if 'vrf' in v else None
                         _links[link] = {'vrf': vrf, 'nodes': nodes}
 
                 if with_base_network:
@@ -923,11 +921,11 @@ class ConfigVars:
         }
         '''
         unnumbered_interfaces = collections.defaultdict(dict)
-        for nl in mf['network_links']:
-            if nl['interface_type'] == 'unnumbered':
-                links = Link(nl['name'], nl['links'])
+        for k, v in mf['network_links'].items():
+            if v['interface_type'] == 'unnumbered':
+                links = Link(k, v['links'])
                 link_nodes = links.link_nodes()
-                vrf = nl['vrf'] if 'vrf' in nl else 'default'
+                vrf = v['vrf'] if 'vrf' in v else 'default'
 
                 for link, nodes in link_nodes.items():
                     for node in nodes:
@@ -1187,3 +1185,6 @@ class ConfigVars:
                     })
 
         return dict(nat_host)
+
+    def dummy(self):
+        return 'All good'

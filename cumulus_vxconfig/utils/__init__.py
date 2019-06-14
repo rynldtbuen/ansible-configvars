@@ -314,7 +314,7 @@ class Link:
                         neighbors[neighbor], neighbors_port[host]
                     )
                     if index == 0:
-                        _item_id = '{} --> {}:{} -- {}:{}'.format(
+                        _item_id = '{}  ({}:{} -- {}:{})'.format(
                             __link,
                             dev_a, ''.join(filter.cluster(ports)),
                             dev_b, ''.join(filter.cluster(neighbors_port))
@@ -407,7 +407,7 @@ class Link:
         }
         '''
         device_interfaces = collections.defaultdict(set)
-        for idx, link in enumerate(self.links):
+        for link in self.links:
             links = self._link(link, item_id=True)
             for item in links:
                 dev, port, item_link = item
@@ -430,13 +430,13 @@ class Link:
 
     @property
     def check_overlapping_interfaces(self):
-        mf = File().master()
 
-        def items(error):
-            for item in mf['network_links']:
-                if item['name'] == self.var:
-                    item['links'] = list(error)
-                    return filter.yaml_format({'network_links': [item]})
+        def err_items(error):
+            net_links = File().master()['network_links']
+            for k, v in net_links.items():
+                if k == self.var:
+                    v['links'] = list(error)
+                    return filter.yaml_format({'network_links': net_links[k]})
 
         for item in itertools.combinations(self.links, 2):
             link_a, link_b = item
@@ -444,10 +444,10 @@ class Link:
                 msg = ("Duplicate link: '{}'\n"
                        "Refer to the errors below and to your "
                        "'master.yml' file.\n{}")
-                raise AnsibleError(msg.format(link_a, items(item)))
+                raise AnsibleError(msg.format(link_a, err_items(item)))
 
-        interfaces_link = self.device_interfaces()
-        for k, v in interfaces_link.items():
+        device_interfaces = self.device_interfaces()
+        for k, v in device_interfaces.items():
             for link in itertools.combinations(v, 2):
                 link_a, link_b = link
                 if link_a[0] == link_b[0]:
@@ -456,4 +456,6 @@ class Link:
                            "Refer to the errors below and to your "
                            "'master.yml' file.\n{}")
 
-                    raise AnsibleError(msg.format(link_a[0], k, items(error)))
+                    raise AnsibleError(
+                        msg.format(link_a[0], k, err_items(error))
+                    )

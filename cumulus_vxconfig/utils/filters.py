@@ -18,7 +18,7 @@ class Filters:
     def yaml_format(self, data, style="", flow=None, start=True):
         return ruamel.yaml.dump(
             data, Dumper=ruamel.yaml.RoundTripDumper,
-            block_seq_indent=None, indent=2,
+            block_seq_indent=2, indent=4,
             default_flow_style=flow, default_style=style,
             explicit_start=start,
             )

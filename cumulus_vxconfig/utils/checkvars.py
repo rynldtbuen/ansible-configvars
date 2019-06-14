@@ -246,8 +246,8 @@ class CheckVars:
 
     @property
     def base_asn(self):
-
-        group_asn = ((k, v) for k, v in mf['base_asn'].items())
+        base_asn = mf['base_asn']
+        group_asn = ((k, v) for k, v in base_asn.items())
         for group_asn in itertools.combinations(group_asn, 2):
             g1, g2 = group_asn
             if g1[1] == g2[1]:
@@ -256,12 +256,16 @@ class CheckVars:
                        "'master.yml' file.\n{}")
                 x = {item[0]: item[1] for item in group_asn}
                 raise AnsibleError(
-                    msg.format(g1[1], filter.yaml_format(
-                        {'base_asn': x}
-                        ))
+                    msg.format(g1[1], filter.yaml_format({'base_asn': x}))
                 )
 
-        return mf['base_asn']
+        for k, _ in base_asn.items():
+            if k not in inventory.group_names():
+                raise AnsibleError(
+                    'Group not found: {}'.format(k)
+                )
+
+        return base_asn
 
     @property
     def interfaces(self):
@@ -269,31 +273,43 @@ class CheckVars:
 
         # Interfaces in links
         net_links = mf['network_links']
-        for idx, nl in enumerate(net_links):
-            links = Link(nl['name'], nl['links'])
+        for k, v in net_links.items():
+            links = Link(k, v['links'])
             device_interfaces = links.device_interfaces()
             for dev in device_interfaces:
                 re_order = []
                 for item in device_interfaces[dev]:
                     port, link, var, name = item
-                    re_order.append((port, var, name, idx, link))
+                    re_order.append((port, var, name, link))
 
                 for item in re_order:
                     interfaces[dev].add(tuple(item))
 
         # Interface in mlag bonds
-        for rack, bonds in self.mlag_bonds.items():
+        mlag_bonds = self.mlag_bonds
+        for rack, bonds in mlag_bonds.items():
             items = []
             for idx, bond in enumerate(bonds):
                 members = filter.uncluster(bond['members'])
                 for member in members:
                     items.append((member, 'mlag_bonds', rack, idx))
 
-            for host in Inventory().hosts('leaf'):
+            for host in inventory.hosts('leaf'):
                 _host = Host(host)
                 if rack == _host.rack:
                     for item in items:
                         interfaces[host].add(tuple(item))
+
+        # Interfaces peerlink
+        ifaces = filter.uncluster(mf['mlag_peerlink_interfaces'])
+        for host in inventory.hosts('leaf'):
+            for iface in ifaces:
+                item = (
+                    iface,
+                    'mlag_peerlink_interfaces',
+                    mf['mlag_peerlink_interfaces']
+                )
+                interfaces[host].add(tuple(item))
 
         hosts = [h for h in interfaces if h in inventory.hosts()]
         for host in hosts:
@@ -306,19 +322,28 @@ class CheckVars:
             ports = [item[0] for item in v]
             dup_ports = [item for item in set(ports) if ports.count(item) > 1]
             if len(dup_ports):
-                items = []
-                for item in v:
-                    if item[0] == dup_ports[0]:
-                        items.append(item)
-                x = {}
-                for item in items:
-                    port, var, name, *r = item
-                    if var == 'mlag_bonds':
-                        x[var] = {name: [mf[var][name][r[0]]]}
-                    elif var == 'network_links':
-                        mf[var][r[0]]['links'] = [r[1]]
-                        x[var] = [mf[var][r[0]]]
+                error_items = [i for i in v if i[0] == dup_ports[0]]
+                yaml_vars = collections.defaultdict(dict)
+                for item in error_items:
+                    port, mfvar, name, *r = item
+                    if mfvar == 'network_links':
+                        yaml_vars[mfvar][name] = {'links': [r[0]]}
+                    elif mfvar == 'mlag_bonds':
+                        yaml_vars[mfvar][name] = mf[mfvar][name][r[0]]
+                    elif mfvar == 'mlag_peerlink_interfaces':
+                        yaml_vars[mfvar] = name
+
+                _yaml_vars = {}
+                for k, v in yaml_vars.items():
+                    if isinstance(v, collections.defaultdict):
+                        _yaml_vars.update({k: dict(v)})
+                    else:
+                        _yaml_vars.update({k: v})
+
                 msg = ("Overlapping interface: '{}' in {}\n"
                        "Refer to the errors below and check the "
                        "'master.yml' file.\n{}")
-                raise AnsibleError(msg.format(port, k, filter.yaml_format(x)))
+
+                raise AnsibleError(
+                    msg.format(port, k, filter.yaml_format(_yaml_vars))
+                )
