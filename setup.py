@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='cumulus_vxconfig',
-    version='v1.0.2',
+    version='v1.0.4',
     author='Reynold Tabuena',
     author_email='rynldtbuen@gmail.com',
     description=(

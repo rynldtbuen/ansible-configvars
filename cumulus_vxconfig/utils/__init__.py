@@ -432,11 +432,15 @@ class Link:
     def check_overlapping_interfaces(self):
 
         def err_items(error):
-            net_links = File().master()['network_links']
-            for k, v in net_links.items():
-                if k == self.var:
-                    v['links'] = list(error)
-                    return filter.yaml_format({'network_links': net_links[k]})
+            # net_links = File().master()['network_links']
+            # for k, v in net_links.items():
+            #     if k == self.var:
+            #         v['links'] = list(error)
+            #         return filter.yaml_format({'network_links': net_links[k]})
+
+            return filter.yaml_format(
+                {'network_links': {self.var: {'links': list(error)}}}
+            )
 
         for item in itertools.combinations(self.links, 2):
             link_a, link_b = item
@@ -452,10 +456,10 @@ class Link:
                 link_a, link_b = link
                 if link_a[0] == link_b[0]:
                     error = link_a[1], link_b[1]
-                    msg = ("Overlapping link interfaces: '{} in {}'\n"
+                    msg = ("Overlapping link interfaces: '{}'\n"
                            "Refer to the errors below and to your "
                            "'master.yml' file.\n{}")
 
                     raise AnsibleError(
-                        msg.format(link_a[0], k, err_items(error))
+                        msg.format(link_a[0], err_items(error))
                     )

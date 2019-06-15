@@ -1,18 +1,25 @@
 A python script that is use as a Ansible custom filter to simplify the configuration variables defined in  [`cumulus-evpn-vxlan-ansible/master.yml`](https://github.com/rynldtbuen/cumulus-evpn-vxlan-ansible/blob/v1.0/master.yml) to deploy Cumulus EVPN VXLAN in Symmetric Routing
-- **Install pip3, virtualenv and git**
-```
-$ sudo apt-get update
-$ sudo apt-get install python3-pip git
-$ pip3 install virtualenv
-```
-- **Create and activate the virtual environment**
+
+
+- **Install pip, env and git**
+
+  Debian/Ubuntu distribution:
+  ```
+  $ sudo apt update
+  $ sudo apt install python3-pip python3-venv git
+  ```
+  For other distribution refer to the [Installing pip/setuptools/wheel with Linux Package Managers](https://packaging.python.org/guides/installing-using-linux-tools/#installing-pip-setuptools-wheel-with-linux-package-managers)
+- **Create and activate a virtual environment**
 ```
 $ mkdir <DIR>
-$ virtualenv -p python3 <DIR>  
+$ python3 -m venv <DIR>
 $ source <DIR>/bin/activate
 ```
-- **Install the script**
+- **Upgrade pip, setuptools and install the [cumulus_vxconfig](https://github.com/rynldtbuen/cumulus-vxconfig)**.
+
+  ***Make sure that you activated the virtual environment before you install the script***
 ```
+$ pip install -U pip setuptools
 $ pip install cumulus_vxconfig
 ```
 - **Clone the playbook and run a test**
