@@ -340,10 +340,10 @@ class CheckVars:
                     else:
                         _yaml_vars.update({k: v})
 
-                msg = ("Overlapping interface: '{}' in {}\n"
+                msg = ("Overlapping interface: '{}'\n"
                        "Refer to the errors below and check the "
                        "'master.yml' file.\n{}")
 
                 raise AnsibleError(
-                    msg.format(port, k, filter.yaml_format(_yaml_vars))
+                    msg.format(port, filter.yaml_format(_yaml_vars))
                 )
