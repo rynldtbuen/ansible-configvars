@@ -366,23 +366,34 @@ class CheckVars:
         host_ifaces = mf['server_interfaces']
         mlag_bonds = self._mlag_bonds()
 
+        is_rack_exist = True
+        is_bond_exist = True
+
         _server_bonds = {}
         for host, iface in host_ifaces.items():
             for idx, bond in enumerate(iface['bonds']):
                 rack = 'rack' + str(bond['rack'])
+                try:
+                    mlag_bonds[rack]
+                except KeyError:
+                    is_rack_exist = False
 
-                is_exist = True
                 try:
                     vids = mlag_bonds[rack][bond['name']]['vids']
                 except KeyError:
-                    is_exist = False
+                    is_bond_exist = False
 
-                if not is_exist:
+                if not is_rack_exist:
                     raise AnsibleError(
                         'rack not found: {} ({}) in {}'.format(
                             rack, list(mlag_bonds.keys()), host)
                         )
-
+                elif not is_bond_exist:
+                    bonds = list(mlag_bonds[rack].keys())
+                    raise AnsibleError(
+                        'bond not found: {} ({}) in {}'.format(
+                            bond['name'], bonds, host)
+                        )
                 bond.update({'vids': vids, 'index': idx})
 
             _groupby = collections.defaultdict(list)
