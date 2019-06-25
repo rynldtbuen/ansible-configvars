@@ -204,33 +204,37 @@ class Host:
         self.host = host
 
         if self.host not in Inventory().hosts():
-            raise AnsibleError('Host not found: ' + self.host)
+            raise AnsibleError('Host not found in inventory: ' + self.host)
 
+        self.name = "".join(re.split('(\\D+)', self.host)[:-1])
         self.id = int(re.split('(\\d+)', self.host)[-2])
 
         if self.id % 2 == 0:
             rack_id = int(self.id - (self.id / 2))
+            peer_host_id = self.id - 1
         else:
             rack_id = int((self.id + 1) - (self.id + 1)/2)
+            peer_host_id = self.id + 1
 
+        self.peer_host = self.name + str(peer_host_id)
         self.rack_id = rack_id
 
-        self.rack = 'rack0' + str(self.rack_id)
+        self.rack = 'rack' + str(self.rack_id)
 
     def __repr__(self):
         return self.host
 
-    @property
-    def peer_host(self):
-        i = Inventory()
-        for host in i.hosts():
-            if host != 'localhost' and host != self.host:
-                _host = Host(host)
-                primary_group = i.groups(host, primary=True)
-                if _host.rack_id == self.rack_id and (
-                    primary_group == i.groups(self.host, primary=True)
-                ):
-                    return host
+    # @property
+    # def peer_host(self):
+    #     i = Inventory()
+    #     for host in i.hosts():
+    #         if host != 'localhost' and host != self.host:
+    #             _host = Host(host)
+    #             primary_group = i.groups(host, primary=True)
+    #             if _host.rack_id == self.rack_id and (
+    #                 primary_group == i.groups(self.host, primary=True)
+    #             ):
+    #                 return host
 
 
 class Inventory:
@@ -252,6 +256,8 @@ class Inventory:
             raise AnsibleError(host + ' not found')
 
     def hosts(self, pattern='all'):
+        # if pattern.startswith('rack'):
+
         try:
             return self.inventory.get_groups_dict()[pattern]
         except KeyError:
@@ -271,7 +277,6 @@ class Inventory:
 
     def group_names(self):
         return [k for k in self.inventory.get_groups_dict()]
-
 
 class Link:
     '''

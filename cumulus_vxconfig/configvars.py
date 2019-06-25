@@ -2,6 +2,7 @@ import collections
 import copy
 import itertools
 
+# import netaddr
 from cumulus_vxconfig.utils.checkvars import CheckVars
 from cumulus_vxconfig.utils.filters import Filters
 from cumulus_vxconfig.utils import (
@@ -208,27 +209,42 @@ class ConfigVars:
             }
         }
         '''
+        racks = list(CheckVars().mlag_bonds.keys())
         interfaces = CheckVars().mlag_peerlink_interfaces
         lo = self.loopback_ips()
 
         mlag_peerlink = {}
+        single_leaf = False
         for host in inventory.hosts('leaf'):
             _host = Host(host)
-            backup_ip = lo[_host.peer_host]['ip_addresses'][0].split('/')[0]
-            system_mac = MACAddr('44:38:39:FF:01:00') - _host.rack_id
+            try:
+                backup_ip = (
+                    lo[_host.peer_host]['ip_addresses'][0].split('/')[0]
+                )
+            except KeyError:
+                single_leaf = True
 
-            if _host.id % 2 == 0:
-                clag_role = '2000'
-                ip, peer_ip = '169.254.1.2/30', '169.254.1.1'
+            if single_leaf:
+                msg = ("\033[1;35mWARNING: Non-MLAG deployment is not "
+                       "supported: {} does not have a peer switch "
+                       "({}) in inventory")
+                print(msg.format(host, _host.peer_host))
             else:
-                clag_role = '1000'
-                ip, peer_ip = '169.254.1.1/30', '169.254.1.2'
+                system_mac = MACAddr('44:38:39:FF:01:00') - _host.rack_id
 
-            mlag_peerlink[host] = {
-                'priority': clag_role, 'system_mac': system_mac,
-                'interfaces': interfaces, 'backup_ip': backup_ip,
-                'peer_ip': peer_ip, 'ip': ip
-            }
+                if _host.id % 2 == 0:
+                    clag_role = '2000'
+                    ip, peer_ip = '169.254.1.2/30', '169.254.1.1'
+                else:
+                    clag_role = '1000'
+                    ip, peer_ip = '169.254.1.1/30', '169.254.1.2'
+
+                if _host.rack in racks:
+                    mlag_peerlink[host] = {
+                        'priority': clag_role, 'system_mac': system_mac,
+                        'interfaces': interfaces, 'backup_ip': backup_ip,
+                        'peer_ip': peer_ip, 'ip': ip
+                    }
 
         return mlag_peerlink
 
@@ -582,7 +598,7 @@ class ConfigVars:
 
         return vlans_network.dump()
 
-    def vlans_interface(self):
+    def vlans_interface(self, gw=False):
         '''
         Build an SVI variable. Data is derived from 'self._vlans_network'.
 
@@ -621,8 +637,8 @@ class ConfigVars:
         vlans_network = self._vlans_network
         host_vlans = self._host_vlans
 
+        _gw = {}
         vlans_interface = {}
-
         for host, vlans in host_vlans.items():
             svi = {'l2svi': [], 'l3svi': [], 'vids': []}
             _host = Host(host)
@@ -636,6 +652,9 @@ class ConfigVars:
                         MACAddr('44:38:39:FF:01:00') + int(vlan['id'])
                     )
                     vip = network.get_ip(0)
+                    _gw[vlan['name']] = {
+                        'gw': vip, 'net_prefix': str(network)
+                    }
                     ip = network.get_ip(-_host.id)
                     svi['l2svi'].append({
                         'name': vlan['name'], 'ip': ip, 'vip': vip,
@@ -663,6 +682,8 @@ class ConfigVars:
 
             vlans_interface[host] = svi
 
+        if gw:
+            return _gw
         return vlans_interface
 
     def _ip_network_link_nodes(self, with_base_network=True):
@@ -1185,6 +1206,70 @@ class ConfigVars:
                     })
 
         return dict(nat_host)
+
+    @property
+    def _server_interfaces(self):
+        host_ifaces = mf['server_interfaces']
+        mgmt_gw = mf['gateway_address']
+        server_bonds = CheckVars().server_bonds()
+        interfaces = {}
+        for host in server_bonds:
+            mgmt_port = host_ifaces[host]['mgmt_port']
+            _bonds = {
+                bond: _v for bond, v in server_bonds[host].items() for _v in v
+            }
+            bonds, ifaces, vlans = [], [], []
+            for bond, v in _bonds.items():
+                rack = 'rack' + str(v['rack'])
+                vids = filter.uncluster(v['vids'])
+                slaves = filter.uncluster(v['slaves'])
+                bonds.append({
+                    'bond': bond, 'slaves': ' '.join(slaves), 'rack': rack
+                    })
+                ifaces.extend(slaves)
+                for vid in vids:
+                    vlans.append({
+                        'vlan': 'vlan' + vid, 'raw_device': bond, 'vid': vid
+                    })
+
+            interfaces[host] = {
+                'bonds': bonds, 'vlans': vlans, 'interfaces': ifaces,
+                'mgmt': {'port': mgmt_port, 'gateway': mgmt_gw}
+            }
+
+        return interfaces
+
+    def server_interfaces(self):
+        server_interfaces = self._server_interfaces
+        vlans = self._vlans(key='vlan')
+        vlans_gw = self.vlans_interface(gw=True)
+
+        for host, v in server_interfaces.items():
+            for idx, _vlan in enumerate(v['vlans']):
+                vlan = _vlan['vlan']
+                primary_gw = False
+                net = Network(vlans_gw[vlan]['net_prefix'])
+                ip = net.get_ip(9 + Host(host).id)
+                tenant = vlans[vlan]['tenant']
+                name = vlans[vlan]['name']
+                gateway = vlans_gw[vlan]['gw'].split('/')[0]
+                if 'allow_nat' in vlans[vlan]:
+                    primary_gw = True
+                # routes.append(str(net))
+
+                # _routes = (
+                #     [str(i) for i in netaddr.cidr_merge(routes)]
+                #     if not primary_gw else None
+                # )
+
+                _vlan.update({
+                    'ip': ip, 'gateway': gateway,
+                    'network_prefix': str(net), 'primary_gw': primary_gw,
+                    'tenant': tenant, 'name': name,
+                    # 'routes': _routes
+                })
+
+        return server_interfaces
 
     def dummy(self):
         return 'All good'

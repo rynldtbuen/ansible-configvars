@@ -104,3 +104,8 @@ class Filters:
             return ['{}{}'.format(k, ','.join(v)) for k, v in _name.items()]
 
         return cluster
+
+    def default_to_dict(self, d):
+        if isinstance(d, collections.defaultdict):
+            d = {k: self.default_to_dict(v) for k, v in d.items()}
+        return d

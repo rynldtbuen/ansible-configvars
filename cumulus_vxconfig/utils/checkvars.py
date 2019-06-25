@@ -1,6 +1,6 @@
 import collections
 import itertools
-# import re
+import re
 import yaml
 
 from ansible.errors import AnsibleError
@@ -74,7 +74,7 @@ class CheckVars:
             for mem in set(mems):
                 if mems.count(mem) > 1:
                     self._mlag_bonds_error(
-                        rack, mem, 'Bond member conflict: ' + mem
+                        rack, mem, 'bond member conflict: ' + mem
                     )
 
             # Check for bonds name conflict
@@ -82,7 +82,7 @@ class CheckVars:
             for name in set(names):
                 if names.count(name) > 1:
                     self._mlag_bonds_error(
-                        rack, name, 'Bond name conflict: ' + name
+                        rack, name, 'bond name conflict: ' + name
                     )
 
             for bond in bonds:
@@ -102,7 +102,7 @@ class CheckVars:
                         set_items.add((_get_tenant(bond_vid), bond['vids']))
 
                 if len(set_items) > 1:
-                    title = ("Bond assigned with a VLANID which "
+                    title = ("bond assigned with a VLANID which "
                              "belongs to multiple tenant: ")
                     for item in set_items:
                         self._mlag_bonds_error(rack, item[1], title)
@@ -135,7 +135,7 @@ class CheckVars:
 
         dup_ifaces = [i for i in set(ifaces) if ifaces.count(i) > 1]
         if len(dup_ifaces) > 0:
-            msg = ("Interfaces conflict:\nRefer to the errors below and "
+            msg = ("interfaces conflict:\nRefer to the errors below and "
                    "check the 'master.yml' file.\n{}")
             raise AnsibleError(
                 msg.format(self._yaml_f({
@@ -179,7 +179,7 @@ class CheckVars:
                     error[item[0]][item[1]] = str(item[-1])
                 else:
                     error[item[0]] = str(item[-1])
-            msg = ("Networks conflict:\nRefer to the errors below and "
+            msg = ("networks conflict:\nRefer to the errors below and "
                    "check the 'master.yml' file.\n{}")
             raise AnsibleError(
                 msg.format(self._yaml_f(
@@ -199,7 +199,7 @@ class CheckVars:
                         _net = Network(network)
                         if (vnp.overlaps(_net)
                                 or _net.overlaps(vnp)):
-                            msg = ("Networks conflict:\nRefer to the errors "
+                            msg = ("networks conflict:\nRefer to the errors "
                                    "below and check the 'master.yml' file."
                                    "\n{}\n{}")
                             raise AnsibleError(msg.format(
@@ -214,7 +214,7 @@ class CheckVars:
                     _net = Network(net)
                     if (vnp.overlaps(_net)
                             or _net.overlaps(vnp)):
-                        msg = ("Networks conflict:\nRefer to the errors below "
+                        msg = ("networks conflict:\nRefer to the errors below "
                                "and check the 'master.yml' file.\n{}\n{}")
                         raise AnsibleError(msg.format(
                             filter.yaml_format({'vlans': {tenant: [vlan]}}),
@@ -226,7 +226,7 @@ class CheckVars:
             _vnp = Network(v['network_prefix'])
             if (vnp.overlaps(_vnp)
                     or _vnp.overlaps(vnp)):
-                msg = ("Networks conflict: {} overlaps with existing network "
+                msg = ("networks conflict: {} overlaps with existing network "
                        "{}(VLAN{})\nRefer to the errors below and check the "
                        "'master.yml' file.\n{}")
                 raise AnsibleError(msg.format(
@@ -251,7 +251,7 @@ class CheckVars:
         for group_asn in itertools.combinations(group_asn, 2):
             g1, g2 = group_asn
             if g1[1] == g2[1]:
-                msg = ("Duplicate AS: {}\n"
+                msg = ("duplicate AS: {}\n"
                        "Refer to the errors below and check the "
                        "'master.yml' file.\n{}")
                 x = {item[0]: item[1] for item in group_asn}
@@ -340,10 +340,115 @@ class CheckVars:
                     else:
                         _yaml_vars.update({k: v})
 
-                msg = ("Overlapping interface: '{}'\n"
+                msg = ("overlapping interface: '{}'\n"
                        "Refer to the errors below and check the "
                        "'master.yml' file.\n{}")
 
                 raise AnsibleError(
                     msg.format(port, filter.yaml_format(_yaml_vars))
                 )
+
+    def _mlag_bonds(self, key='name'):
+        mlag_bonds = self.mlag_bonds
+
+        x = {}
+        for rack, bonds in mlag_bonds.items():
+            _groupby = {}
+            for k, v in itertools.groupby(bonds, lambda x: x[key]):
+                for item in list(v):
+                    _groupby[k] = item
+
+            x[rack] = _groupby
+
+        return x
+
+    def _server_bonds(self, key='name'):
+        host_ifaces = mf['server_interfaces']
+        mlag_bonds = self._mlag_bonds()
+
+        _server_bonds = {}
+        for host, iface in host_ifaces.items():
+            for idx, bond in enumerate(iface['bonds']):
+                rack = 'rack' + str(bond['rack'])
+
+                is_exist = True
+                try:
+                    vids = mlag_bonds[rack][bond['name']]['vids']
+                except KeyError:
+                    is_exist = False
+
+                if not is_exist:
+                    raise AnsibleError(
+                        'rack not found: {} ({}) in {}'.format(
+                            rack, list(mlag_bonds.keys()), host)
+                        )
+
+                bond.update({'vids': vids, 'index': idx})
+
+            _groupby = collections.defaultdict(list)
+            for k, v in itertools.groupby(iface['bonds'], lambda x: x[key]):
+                list_v = list(v)
+                if key == 'slaves' or key == 'vids':
+                    for item in filter.uncluster(k):
+                        _groupby[item].extend(list_v)
+                else:
+                    _groupby[k].extend(list_v)
+
+            _server_bonds[host] = _groupby
+
+        return _server_bonds
+
+    def server_bonds(self):
+        server_bonds = self._server_bonds()
+        mlag_bonds = self._mlag_bonds()
+
+        bonds = []
+
+        for host in server_bonds:
+            for bond, v in server_bonds[host].items():
+                # Check for duplicate bonds per host
+                if len(v) > 1:
+                    msg = 'multiple bond assignment: {} in {}'
+                    raise AnsibleError(msg.format(bond, host))
+
+                for item in v:
+                    rack = 'rack' + str(item['rack'])
+                    # Check if bond exist in rack per host
+                    if item['name'] not in mlag_bonds[rack]:
+                        racks = list(mlag_bonds[rack].keys())
+                        raise AnsibleError(
+                            "bond not found: {} ({}) in {}".format(
+                                item['name'], racks, host)
+                        )
+                    item.update({'host': host})
+                bonds.extend(v)
+
+            # Check for duplicate bond slaves per host
+            for slave, v in self._server_bonds(key='slaves')[host].items():
+                if len(v) > 1:
+                    bonds = [i['name'] for i in v]
+                    msg = "multiple bond slaves assignment: {} ({}) in {}"
+                    raise AnsibleError(msg.format(slave, bonds, host))
+
+            # Check for multiple vlan assignments per host
+            for vid, v in self._server_bonds(key='vids')[host].items():
+                if len(v) > 1:
+                    msg = "multiple bond vlans assignment: {} ({}) in {}"
+                    bonds = [i['name'] for i in v]
+                    raise AnsibleError(msg.format('vlan' + vid, bonds, host))
+
+        # Check for multiple bond assignment per rack
+        for k, v in itertools.groupby(bonds, lambda x: x['rack']):
+            list_v = list(v)
+            y = collections.defaultdict(list)
+            for item in list_v:
+                y[item['name']].append(item)
+
+            for bond, _v in y.items():
+                if len(_v) > 1:
+                    hosts = [i['host'] for i in _v]
+                    msg = ('multiple bond assigment '
+                           'with the same rack: {} in ({})')
+                    raise AnsibleError(msg.format(bond, hosts))
+
+        return server_bonds
