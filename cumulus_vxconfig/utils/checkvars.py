@@ -371,31 +371,36 @@ class CheckVars:
 
         _server_bonds = {}
         for host, iface in host_ifaces.items():
-            for idx, bond in enumerate(iface['bonds']):
-                rack = 'rack' + str(bond['rack'])
-                try:
-                    mlag_bonds[rack]
-                except KeyError:
-                    is_rack_exist = False
+            if host in inventory.hosts():
+                for idx, bond in enumerate(iface['bonds']):
+                    rack = 'rack' + str(bond['rack'])
+                    try:
+                        mlag_bonds[rack]
+                    except KeyError:
+                        is_rack_exist = False
 
-                try:
-                    vids = mlag_bonds[rack][bond['name']]['vids']
-                except KeyError:
-                    is_bond_exist = False
+                    try:
+                        vids = mlag_bonds[rack][bond['name']]['vids']
+                    except KeyError:
+                        is_bond_exist = False
 
-                if not is_rack_exist:
-                    raise AnsibleError(
-                        'rack not found: {} ({}) in {}'.format(
-                            rack, list(mlag_bonds.keys()), host)
-                        )
-                elif not is_bond_exist:
-                    bonds = list(mlag_bonds[rack].keys())
-                    raise AnsibleError(
-                        'bond not found: {} ({}) in {}'.format(
-                            bond['name'], bonds, host)
-                        )
-                bond.update({'vids': vids, 'index': idx})
-
+                    if not is_rack_exist:
+                        raise AnsibleError(
+                            'rack not found: {} ({}) in {}'.format(
+                                rack, list(mlag_bonds.keys()), host)
+                            )
+                    elif not is_bond_exist:
+                        bonds = list(mlag_bonds[rack].keys())
+                        raise AnsibleError(
+                            'bond not found: {} ({}) in {}'.format(
+                                bond['name'], bonds, host)
+                            )
+                    bond.update({'vids': vids, 'index': idx})
+            else:
+                msg = (
+                    "\033[1;35mWARNING: Host {} not found in inventory file"
+                )
+                print(msg.format(host))
             _groupby = collections.defaultdict(list)
             for k, v in itertools.groupby(iface['bonds'], lambda x: x[key]):
                 list_v = list(v)

@@ -887,12 +887,17 @@ class ConfigVars:
 
         master_ip_interfaces = mf['ip_interfaces']
         for host, interfaces in master_ip_interfaces.items():
-            for item in interfaces:
-                ip_interfaces[host][item['name']] = {
-                    'ip': item['ip_address'], 'alias': item['alias'],
-                    'vrf': 'default', 'neighbor': None
-                }
-
+            if host in inventory.hosts():
+                for item in interfaces:
+                    ip_interfaces[host][item['name']] = {
+                        'ip': item['ip_address'], 'alias': item['alias'],
+                        'vrf': 'default', 'neighbor': None
+                    }
+            else:
+                msg = (
+                    "\033[1;35mWARNING: Host {} not found in inventory file"
+                )
+                print(msg.format(host))
         interface_sort = {
             k: dict(collections.OrderedDict(
                     sorted(v.items(), key=lambda x: filter.natural_keys(x[0]))

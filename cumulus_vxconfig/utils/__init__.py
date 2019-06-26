@@ -253,7 +253,7 @@ class Inventory:
 
     def _check_host(self, host):
         if host not in self.__iter__():
-            raise AnsibleError(host + ' not found')
+            raise AnsibleError(host + ' not found in inventory file')
 
     def hosts(self, pattern='all'):
         # if pattern.startswith('rack'):
@@ -278,10 +278,11 @@ class Inventory:
     def group_names(self):
         return [k for k in self.inventory.get_groups_dict()]
 
+
 class Link:
     '''
     Class that trasform a link string format into a stuctured data
-    Example of link string format: 'spine:swp1 -- leaf:swp21'
+    Example: 'spine:swp1 -- leaf:swp21'
     '''
     def __init__(self, variable, _links):
         self.links = _links

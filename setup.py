@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='cumulus_vxconfig',
-    version='v1.0.5',
+    version='v1.0.6',
     author='Reynold Tabuena',
     author_email='rynldtbuen@gmail.com',
     description=(
@@ -19,7 +19,7 @@ setup(
     license='MIT',
     packages=find_packages(),
     install_requires=[
-        'ansible==2.7.8',
+        'ansible==2.8.0',
         'napalm',
         'napalm-ansible',
         'napalm-vyos',
