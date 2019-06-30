@@ -396,21 +396,22 @@ class CheckVars:
                                 bond['name'], bonds, host)
                             )
                     bond.update({'vids': vids, 'index': idx})
+
+                _groupby = collections.defaultdict(list)
+                for k, v in itertools.groupby(iface['bonds'], lambda x: x[key]):
+                    list_v = list(v)
+                    if key == 'slaves' or key == 'vids':
+                        for item in filter.uncluster(k):
+                            _groupby[item].extend(list_v)
+                    else:
+                        _groupby[k].extend(list_v)
+
+                    _server_bonds[host] = _groupby
             else:
                 msg = (
                     "\033[1;35mWARNING: Host {} not found in inventory file"
                 )
                 print(msg.format(host))
-            _groupby = collections.defaultdict(list)
-            for k, v in itertools.groupby(iface['bonds'], lambda x: x[key]):
-                list_v = list(v)
-                if key == 'slaves' or key == 'vids':
-                    for item in filter.uncluster(k):
-                        _groupby[item].extend(list_v)
-                else:
-                    _groupby[k].extend(list_v)
-
-            _server_bonds[host] = _groupby
 
         return _server_bonds
 

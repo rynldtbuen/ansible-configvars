@@ -19,9 +19,9 @@ class ConfigVars:
     Class that transform and simplify the configuration variables
     define in https://github.com/rynldtbuen/cumulus-evpn-vxlan-ansible
     '''
-    def __init__(self):
+    # def __init__(self):
         # Check for overlapping interfaces
-        CheckVars().interfaces
+        # CheckVars().interfaces
 
     def loopback_ips(self):
         '''
@@ -36,23 +36,6 @@ class ConfigVars:
                 border: '192.168.1.0/24'
                 leaf: '192.168.2.0/23'
             vxlan_anycast: '192.168.8.0/23'
-
-        Returns
-        -------
-        {
-            "spine01": {
-                "ip_addresses": [
-                    "192.168.0.1/32"
-                ],
-                "clag_vxlan_anycast_ip": null
-            },
-            "leaf01": {
-                "ip_addresses": [
-                    "192.168.2.1/32"
-                ],
-                "clag_vxlan_anycast_ip": null
-            }
-        }
         '''
         # Check for overlapping networks
         base_networks = CheckVars().base_networks
@@ -96,49 +79,12 @@ class ConfigVars:
         key: str
             valid options: ['vlan', 'id', tenant', 'name', 'type']
             Set the dict key of choice for easy reference of variable
-
-        Returns
-        -------
-        if key is None:
-        {
-            "tenant01": [
-                {
-                    "id": "100",
-                    "name": "vlan100"
-                }
-            ],
-            "tenant02": [
-                {
-                    "id": "500",
-                    "name": "vlan500"
-                }
-            ]
-        }
         '''
         master_vlans = CheckVars().vlans
 
         def _l3vni():
             '''
             Generate a l3vni id each tenant and save it on l3vni.json file.
-
-            Returns
-            -------
-            {
-                "tenant01": {
-                    "id": "4000",
-                    "name": "l3vni",
-                    "type": "l3",
-                    "vlan": "vlan4000",
-                    "tenant": "tenant01"
-                },
-                "tenant02": {
-                    "id": "4001",
-                    "name": "l3vni",
-                    "type": "l3",
-                    "vlan": "vlan4001",
-                    "tenant": "tenant02"
-                }
-            }
             '''
             l3vni = File('l3vni')
 
@@ -195,19 +141,6 @@ class ConfigVars:
         Required variable in master.yml
         -------------------------------
         mlag_peerlink_interfaces: 'swp23-24'
-
-        Returns
-        -------
-        {
-            "leaf01": {
-                "priority": "1000",
-                "system_mac": "44:38:39:ff:00:ff",
-                "interfaces": "swp23,swp24",
-                "backup_ip": "192.168.2.2",
-                "peer_ip": "169.254.1.2",
-                "ip": "169.254.1.1/30"
-            }
-        }
         '''
         racks = list(CheckVars().mlag_bonds.keys())
         interfaces = CheckVars().mlag_peerlink_interfaces
@@ -259,48 +192,13 @@ class ConfigVars:
             - { name: server01, members: 'swp1', vids: '100' }
             rack02:
             - { name: server02, members: 'swp1', vids: '500' }
-
-        Returns
-        -------
-        {
-            "leaf01": {
-                "bonds": [
-                    {
-                        "name": "server01",
-                        "vids": "100",
-                        "clag_id": 1,
-                        "tenant": "tenant01",
-                        "members": "swp1,swp3",
-                        "alias": "tenant01.rack01.1"
-                    }
-                ]
-                "bridge": [
-                    {
-                        "mode": "access",
-                        "vids": "100",
-                        "bonds": "server01"
-                    }
-                ]
-            }
-        }
         '''
         mlag_bonds = CheckVars().mlag_bonds
 
         def _clag_interfaces():
             '''
             Generate a unique clag id of a bond and save it on
-            'clag_interfaces.json' file.
-
-            Returns
-            -------
-            {
-                "rack01": {
-                    "server01": 1
-                },
-                "rack02": {
-                    "server01": 5
-                }
-            }
+            clag_interfaces.json file.
             '''
             clag_ifaces = File('clag_interfaces')
 
@@ -405,36 +303,7 @@ class ConfigVars:
 
     def vxlans(self):
         '''
-        Build a vxlan variable. Data is derive from 'self._host_vlans'.
-
-        Returns
-        -------
-        {
-            "leaf01": {
-                "local_tunnelip": "192.168.2.1",
-                "vxlan_interfaces": [
-                    {
-                        "alias": "tenant01.4000.l3vni",
-                        "name": "vni4000",
-                        "vlan": "vlan4000",
-                        "tenant": "tenant01",
-                        "type": "l3",
-                        "id": "4000",
-                        "vid": "4000"
-                    },
-                    {
-                        "alias": "tenant01.100.vlan100",
-                        "name": "vni100",
-                        "vlan": "vlan100",
-                        "tenant": "tenant01",
-                        "type": "l2",
-                        "id": "100",
-                        "vid": "100"
-                    }
-                ],
-                "summary": "vni100,4000"
-            }
-        }
+        Build a vxlan variable. Data is derive from self._host_vlans.
         '''
         base_name = 'vni'
         base_vxlan_id = 0
@@ -481,42 +350,8 @@ class ConfigVars:
     def _vlans_network(self):
         '''
         Generate a unique network prefix for each VLAN that do not have
-        the 'network_prefix' or 'prefixlen' attribute. Data is save on
-        'vlas_network.json' file.
-
-        Required variables in master.yml
-        --------------------------------
-        vlans:
-            tenant01:
-            - { id: '100', name: 'vlan100'}
-            tenant02:
-            - { id: '500', name: 'vlan500'}
-
-        base_networks:
-          vlans: '172.16.0.0/14'
-
-        Returns
-        -------
-        {
-            "vlan100": {
-                "id": "100",
-                "name": "vlan100",
-                "tenant": "tenant01",
-                "type": "l2",
-                "vlan": "vlan100",
-                "allocation": "auto_network_prefix",
-                "network_prefix": "172.16.0.0/24"
-            },
-            "vlan500": {
-                "id": "500",
-                "name": "vlan500",
-                "tenant": "tenant02",
-                "type": "l2",
-                "vlan": "vlan500",
-                "allocation": "auto_network_prefix",
-                "network_prefix": "172.16.1.0/24"
-            }
-        }
+        the network_prefix or prefixlen attribute. Data is save on
+        vlas_network.json file.
         '''
         mv = self._vlans()
         vlans_network = File('vlans_network')
@@ -600,39 +435,7 @@ class ConfigVars:
 
     def vlans_interface(self, gw=False):
         '''
-        Build an SVI variable. Data is derived from 'self._vlans_network'.
-
-        Returns
-        -------
-        {
-            "leaf01": {
-                "l2svi": [
-                    {
-                        "ip": "172.16.0.253/24",
-                        "name": "vni100",
-                        "vhwaddr": "44:38:39:ff:01:64",
-                        "vid": "100",
-                        "vip": "172.16.0.254/24",
-                        "vlan": "vlan100",
-                        "vrf": "tenant01"
-                    },
-
-                ],
-                "l3svi": [
-                     {
-                        "router_mac": "44:39:39:ff:ff:fe",
-                        "vid": "4000",
-                        "vlan": "vlan4000",
-                        "vni": "4000",
-                        "vrf": "tenant01"
-                    },
-                ],
-                "vids": [
-                    "100",
-                    "4000"
-                ]
-            }
-        }
+        Build an SVI variable. Data is derived from self._vlans_network.
         '''
         vlans_network = self._vlans_network
         host_vlans = self._host_vlans
@@ -700,56 +503,6 @@ class ConfigVars:
 
         base_networks:
           external_connectivity: '192.168.254.0/23'
-
-        Returns
-        -------
-        if with_base_network:
-        {
-            "192.168.254.0/23": {
-                "edge01:eth0 -- border01:swp1_4000": {
-                    "vrf": "tenant01",
-                    "nodes": [
-                        {
-                            "host": "edge01",
-                            "interface": "eth0",
-                            "neighbor": "border01",
-                            "ngroup": "border",
-                            "ninterface": "swp1"
-                        },
-                        {
-                            "host": "border01",
-                            "interface": "swp1",
-                            "neighbor": "edge01",
-                            "ngroup": "edge",
-                            "ninterface": "eth0"
-                        }
-                    ]
-                }
-            }
-        }
-        else:
-        {
-            "edge01:eth1 -- border02:swp1_4001": {
-                "vrf": "tenant02",
-                "nodes": [
-                    {
-                        "host": "edge01",
-                        "interface": "eth1",
-                        "neighbor": "border02",
-                        "ngroup": "border",
-                        "ninterface": "swp1"
-                    },
-                    {
-                        "host": "border02",
-                        "interface": "swp1",
-                        "neighbor": "edge01",
-                        "ngroup": "edge",
-                        "ninterface": "eth1"
-                    }
-                ]
-            }
-        }
-
         '''
         ip_network_type = ['ip', 'sub_interface']
         l3vni = {
@@ -796,13 +549,7 @@ class ConfigVars:
         '''
         Generate a unique IP network /30 for point-to-point link that
         require a IP network and save it in 'ip_network_links.json' file.
-        Data is derive from 'self._ip_network_link_nodes'.
-
-        Returns
-        -------
-        {
-            "edge01:eth0 -- border01:swp1_4000": "192.168.254.0/30"
-        }
+        Data is derive from self._ip_network_link_nodes.
         '''
         ip_network_links = File('ip_network_links')
         link_network = ip_network_links.data
@@ -826,38 +573,8 @@ class ConfigVars:
     def ip_interfaces(self):
         '''
         Build an IP interfaces variable. Data is derive from
-        'self._ip_network_link' and 'self._ip_network_link_nodes'
+        self._ip_network_link and self._ip_network_link_nodes
 
-        Returns
-        -------
-        {
-            "edge01": {
-                "eth0.4000": {
-                    "ip": "192.168.254.1/30",
-                    "alias": "edge01:eth0 -- border01:swp1_4000",
-                    "vrf": "tenant01",
-                    "neighbor": {
-                        "host": "border01",
-                        "address": "192.168.254.2",
-                        "interface": "swp1",
-                        "group": "border"
-                    }
-                }
-            },
-            "border01": {
-                "swp1.4000": {
-                    "ip": "192.168.254.2/30",
-                    "alias": "edge01:eth0 -- border01:swp1_4000",
-                    "vrf": "tenant01",
-                    "neighbor": {
-                        "host": "edge01",
-                        "address": "192.168.254.1",
-                        "interface": "eth0",
-                        "group": "edge"
-                    }
-                }
-            }
-        }
         '''
         ip_network_links = self._ip_network_links
         ip_network_link_nodes = (
@@ -918,33 +635,6 @@ class ConfigVars:
               - 'spine:swp1 -- leaf:swp21'
               - 'spine:swp23 -- border:swp23'
             interface_type: unnumbered
-
-        Returns
-        -------
-        {
-            "spine01": {
-                "swp1": {
-                    "alias": "spine01:swp1 -- leaf01:swp21",
-                    "vrf": "default",
-                    "neighbor": {
-                        "host": "leaf01",
-                        "interface": "swp21",
-                        "group": "leaf"
-                    }
-                }
-            },
-            "leaf01": {
-                "swp21": {
-                    "alias": "spine01:swp1 -- leaf01:swp21",
-                    "vrf": "default",
-                    "neighbor": {
-                        "host": "spine01",
-                        "interface": "swp1",
-                        "group": "spine"
-                    }
-                }
-            }
-        }
         '''
         unnumbered_interfaces = collections.defaultdict(dict)
         for k, v in mf['network_links'].items():
@@ -975,51 +665,8 @@ class ConfigVars:
 
     def bgp_neighbors(self):
         '''
-        Generate a BGP neighbors variable. Data is derive from
-        'self.ip_interfaces' and 'self.unnumbered_interfaces'
-
-        Returns
-        -------
-        {
-            "border01": {
-                "tenant01": {
-                    "router_id": "192.168.1.1",
-                    "as": 64552,
-                    "neighbors": [
-                        {
-                            "neighbor": "192.168.254.1",
-                            "remote_as": 64531,
-                            "remote_id": "192.168.0.129",
-                            "peer_group": "edge",
-                            "remote_host": "edge01"
-                            "remote_interface": "eth0",
-                            "local_interface": "swp1.4000"
-                        }
-                    ],
-                    "peer_groups": [
-                        "edge"
-                    ]
-                },
-                "default": {
-                    "router_id": "192.168.1.1",
-                    "as": 64552,
-                    "neighbors": [
-                        {
-                            "neighbor": "swp23",
-                            "remote_as": "external",
-                            "remote_id": "192.168.0.1",
-                            "peer_group": "spine",
-                            "remote_host": "spine01"
-                            "remote_interface": "swp23",
-                            "local_interface": "swp23"
-                        }
-                    ],
-                    "peer_groups": [
-                        "spine"
-                    ]
-                }
-            }
-        }
+        Generate a BGP neighbors variable.
+        Data is derive from self.ip_interfaces and self.unnumbered_interfaces
         '''
         bgp_config = {}
         base_asn = CheckVars().base_asn
@@ -1095,21 +742,6 @@ class ConfigVars:
 
         base_networks:
           oob_management: '172.24.0.0/24'
-
-        Returns
-        -------
-        {
-            "1": {
-                "name": "oob_management",
-                "tenant": "default",
-                "source_address": "172.24.0.0/24"
-            },
-            "5000": {
-                "name": "vlan500",
-                "tenant": "tenant01",
-                "source_address": "172.16.0.0/24"
-            }
-        }
         '''
         nat_rules = File('nat_rules')
         available_rules = iter([
@@ -1168,29 +800,8 @@ class ConfigVars:
                 eth3:
                     address: dhcp
                     ip_nat: outside
-                eth2: # Management interface
+                eth2:
                     address: '172.24.0.254/24'
-
-        Returns
-        -------
-        {
-            "edge01": [
-                {
-                    "interface": "eth3",
-                    "name": "oob_management",
-                    "rule": 1,
-                    "tenant": "default",
-                    "source_address": "172.24.0.0/24"
-                },
-                {
-                    "interface": "eth3",
-                    "name": "vlan500",
-                    "rule": 5000,
-                    "tenant": "tenant01",
-                    "source_address": "172.16.0.0/24"
-                }
-            ]
-        }
         '''
         master_ip_interfaces = mf['ip_interfaces']
         nat_rules = self._nat_rules
@@ -1276,5 +887,6 @@ class ConfigVars:
 
         return server_interfaces
 
-    def dummy(self):
+    def check_interfaces(self):
+        CheckVars().interfaces
         return 'All good'

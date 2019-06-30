@@ -202,81 +202,125 @@ class Host:
 
     def __init__(self, host):
         self.host = host
+        self.name_split = re.split('(\\d)', self.host)
 
-        if self.host not in Inventory().hosts():
-            raise AnsibleError('Host not found in inventory: ' + self.host)
+    @property
+    def base_name(self):
+        return ''.join(self.name_split[:-2])
 
-        self.name = "".join(re.split('(\\D+)', self.host)[:-1])
-        self.id = int(re.split('(\\d+)', self.host)[-2])
+    @property
+    def id(self):
+        return int(re.split('(\\d+)', self.host)[-2])
 
+    @property
+    def rack_id(self):
         if self.id % 2 == 0:
             rack_id = int(self.id - (self.id / 2))
-            peer_host_id = self.id - 1
         else:
             rack_id = int((self.id + 1) - (self.id + 1)/2)
+
+        return rack_id
+
+    @property
+    def rack(self):
+        return 'rack' + str(self.rack_id)
+
+    @property
+    def peer_host(self):
+        if self.id % 2 == 0:
+            peer_host_id = self.id - 1
+        else:
             peer_host_id = self.id + 1
 
-        self.peer_host = self.name + str(peer_host_id)
-        self.rack_id = rack_id
+        return self.base_name + str(peer_host_id)
 
-        self.rack = 'rack' + str(self.rack_id)
-
-    def __repr__(self):
-        return self.host
-
-    # @property
-    # def peer_host(self):
-    #     i = Inventory()
-    #     for host in i.hosts():
-    #         if host != 'localhost' and host != self.host:
-    #             _host = Host(host)
-    #             primary_group = i.groups(host, primary=True)
-    #             if _host.rack_id == self.rack_id and (
-    #                 primary_group == i.groups(self.host, primary=True)
-    #             ):
-    #                 return host
+    @property
+    def group(self):
+        return self.base_name
 
 
 class Inventory:
 
-    def __init__(self):
+    def __init__(self, host=None):
 
-        self.inventory_source = os.getcwd() + '/devices'
-        self.loader = DataLoader()
-
-        self.inventory = InventoryManager(
-            loader=self.loader, sources=[self.inventory_source]
+        inventory_file = os.getcwd() + '/devices'
+        loader = DataLoader()
+        self.inventory = (
+            InventoryManager(loader=loader, sources=[inventory_file])
         )
 
-    def __iter__(self):
-        return iter([h for h in self.hosts() if h != 'localhost'])
+        self.add_rack_group()
+        self.check_host_ids()
 
-    def _check_host(self, host):
-        if host not in self.__iter__():
-            raise AnsibleError(host + ' not found in inventory file')
+    def check_host_ids(self):
+        # Check for duplicate host IDs each group
+        main_groups = ['leaf', 'spine', 'border']
 
-    def hosts(self, pattern='all'):
-        # if pattern.startswith('rack'):
-
-        try:
-            return self.inventory.get_groups_dict()[pattern]
-        except KeyError:
-            self._check_host(pattern)
-            return [pattern]
-
-    def groups(self, host, primary=True):
-        self._check_host(host)
-        groups = []
-        for k, v in self.inventory.get_groups_dict().items():
-            if host in v and k != 'all':
-                if primary:
-                    return k
+        for group in main_groups:
+            ids = {}
+            hosts = self.hosts(group)
+            for idx, host in enumerate(hosts):
+                _host = Host(host)
+                if _host.id not in ids:
+                    ids[_host.id] = idx
                 else:
-                    groups.append(k)
-        return groups
+                    raise AnsibleError(
+                        "duplicate host ID: {} ({})".format(
+                            _host.id, ','.join([host, hosts[ids[_host.id]]])
+                            )
+                    )
+
+    def add_rack_group(self):
+
+        racks = File().master()['mlag_bonds']
+        for host in self.hosts('leaf'):
+            _host = Host(host)
+            for rack in racks:
+                self.inventory.add_group(rack)
+                if _host.rack == rack:
+                    self.inventory.add_host(host, group=rack)
 
     def group_names(self):
-        return [k for k in self.inventory.get_groups_dict()]
+        return [
+            k for k in self.inventory.get_groups_dict()
+            if k != 'all' and k != 'ungrouped'
+        ]
+
+    def hosts(self, group='all'):
+
+        groups_dict = self.inventory.get_groups_dict()
+        host_found = True
+        try:
+            return groups_dict[group]
+        except KeyError:
+            host = group
+            if host in groups_dict['all']:
+                return [host]
+            else:
+                host_found = False
+
+        if not host_found:
+            raise AnsibleError('host not found in inventory: %s' % host)
+
+    def groups(self, host, primary=False):
+
+        if host in self.hosts():
+
+            _host = Host(host)
+            if primary:
+                if _host.group in self.group_names():
+                    return _host.group
+                else:
+                    raise AnsibleError(
+                        'group not found in inventory: %s' % _host.group
+                    )
+
+            return [
+                k for k, v in self.inventory.get_groups_dict().items()
+                if host in v and k != 'all'
+            ]
+        else:
+            raise AnsibleError('host not found in inventory: %s' % host)
 
 
 class Link:
@@ -285,12 +329,14 @@ class Link:
     Example: 'spine:swp1 -- leaf:swp21'
     '''
     def __init__(self, variable, _links):
+
         self.links = _links
         self.var = variable
 
         self.check_overlapping_interfaces
 
     def _link(self, __link, item_id=False):
+
         links = itertools.permutations(
             [item.strip() for item in __link.split('--')]
         )
@@ -336,7 +382,7 @@ class Link:
                         yield connections, net_id
 
     def _group(self, host):
-        return Inventory().groups(host)
+        return Inventory().groups(host, primary=True)
 
     def __iter__(self):
         ''' Return values:
