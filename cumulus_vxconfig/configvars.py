@@ -2,12 +2,13 @@ import collections
 import copy
 import itertools
 
-# import netaddr
 from cumulus_vxconfig.utils.checkvars import CheckVars
 from cumulus_vxconfig.utils.filters import Filters
 from cumulus_vxconfig.utils import (
     File, Inventory, Host, MACAddr, Network, Link
 )
+
+from ansible.errors import AnsibleError
 
 filter = Filters()
 inventory = Inventory()
@@ -611,10 +612,10 @@ class ConfigVars:
                         'vrf': 'default', 'neighbor': None
                     }
             else:
-                msg = (
-                    "\033[1;35mWARNING: Host {} not found in inventory file"
+                raise AnsibleError(
+                    "%s not found in inventory file, "
+                    "check the master.yml in ip_interfaces" % host
                 )
-                print(msg.format(host))
         interface_sort = {
             k: dict(collections.OrderedDict(
                     sorted(v.items(), key=lambda x: filter.natural_keys(x[0]))
@@ -885,6 +886,12 @@ class ConfigVars:
                     # 'routes': _routes
                 })
 
+        for host in inventory.hosts('server'):
+            if host not in server_interfaces:
+                print(
+                    "\033[1;35mINFO: %s is not defined in server_interfaces, "
+                    "check your master.yml" % host
+                )
         return server_interfaces
 
     def check_interfaces(self):

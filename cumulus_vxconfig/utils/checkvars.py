@@ -365,13 +365,14 @@ class CheckVars:
     def _server_bonds(self, key='name'):
         host_ifaces = mf['server_interfaces']
         mlag_bonds = self._mlag_bonds()
+        servers = inventory.hosts('server')
 
         is_rack_exist = True
         is_bond_exist = True
 
         _server_bonds = {}
         for host, iface in host_ifaces.items():
-            if host in inventory.hosts():
+            if host in servers:
                 for idx, bond in enumerate(iface['bonds']):
                     rack = 'rack' + str(bond['rack'])
                     try:
@@ -408,10 +409,10 @@ class CheckVars:
 
                     _server_bonds[host] = _groupby
             else:
-                msg = (
-                    "\033[1;35mWARNING: Host {} not found in inventory file"
+                raise AnsibleError(
+                    "%s not found in inventory file, "
+                    "check the master.yml in server_interfaces" % host
                 )
-                print(msg.format(host))
 
         return _server_bonds
 

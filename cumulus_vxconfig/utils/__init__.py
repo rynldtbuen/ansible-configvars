@@ -39,6 +39,14 @@ class File:
 
             with open(self.path, 'r') as f:
                 self.data = json.load(f)
+        else:
+            try:
+                path = os.getcwd() + '/master.yml'
+            except FileNotFoundError as err:
+                print(err)
+
+            with open(path, 'r') as f:
+                self.masterfile = yaml.safe_load(f)
 
     def dump(self):
         with open(self.path, 'w') as f:
@@ -263,12 +271,13 @@ class Inventory:
                 _host = Host(host)
                 if _host.id not in ids:
                     ids[_host.id] = idx
-                else:
-                    raise AnsibleError(
-                        "duplicate host ID: {} ({})".format(
-                            _host.id, ','.join([host, hosts[ids[_host.id]]])
-                            )
-                    )
+                    break
+            else:
+                raise AnsibleError(
+                    "duplicate host ID: {} ({})".format(
+                        _host.id, ','.join([host, hosts[ids[_host.id]]])
+                        )
+                )
 
     def add_rack_group(self):
 
@@ -300,7 +309,7 @@ class Inventory:
                 host_found = False
 
         if not host_found:
-            raise AnsibleError('host not found in inventory: %s' % host)
+            raise AnsibleError('group/host not found in inventory: %s' % host)
 
     def groups(self, host, primary=False):
 
