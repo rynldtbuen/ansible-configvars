@@ -19,7 +19,7 @@ setup(
     license='MIT',
     packages=find_packages(),
     install_requires=[
-        'ansible==2.8.0',
+        'ansible==2.10.0',
         'napalm',
         'napalm-ansible',
         'napalm-vyos',
